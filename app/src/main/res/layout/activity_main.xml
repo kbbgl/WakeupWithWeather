@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    android:id="@+id/rootlayout"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="kobbigal.wakeupwithweather.MainActivity"
+    android:gravity="center"
+    android:background="@color/colorAccent">
+
+    <TextView
+        android:id="@+id/choose_time_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choose alarm time"
+        android:textSize="20sp"
+        android:fontFamily="sans-serif"
+        android:textAllCaps="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="5dp"
+
+        android:textColor="@color/colorPrimary"
+        android:gravity="center"/>
+
+    <TimePicker
+        android:id="@+id/timepicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/choose_time_label"
+        android:numbersTextColor="@color/colorPrimary"
+        android:numbersInnerTextColor="@color/colorPrimaryDark"
+        android:numbersBackgroundColor="@color/colorPrimaryDark"
+        android:numbersSelectorColor="@color/colorAccent"/>
+
+
+</RelativeLayout>
