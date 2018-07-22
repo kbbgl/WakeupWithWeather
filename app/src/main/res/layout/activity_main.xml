@@ -8,31 +8,43 @@
     android:layout_height="match_parent"
     tools:context="kobbigal.wakeupwithweather.MainActivity"
     android:gravity="center"
-    android:background="@color/colorAccent">
+    android:background="@color/colorPrimaryDark">
 
     <TextView
         android:id="@+id/choose_time_label"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Choose alarm time"
-        android:textSize="20sp"
+        android:textSize="30sp"
         android:fontFamily="sans-serif"
         android:textAllCaps="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="5dp"
-
         android:textColor="@color/colorPrimary"
         android:gravity="center"/>
 
     <TimePicker
+        android:layout_centerHorizontal="true"
         android:id="@+id/timepicker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/choose_time_label"
         android:numbersTextColor="@color/colorPrimary"
         android:numbersInnerTextColor="@color/colorPrimaryDark"
-        android:numbersBackgroundColor="@color/colorPrimaryDark"
-        android:numbersSelectorColor="@color/colorAccent"/>
+        android:numbersBackgroundColor="@color/colorAccent"
+        android:numbersSelectorColor="@color/colorPrimaryDark"/>
 
+    <android.support.v7.widget.SwitchCompat
+        android:background="@color/colorPrimary"
+        android:id="@+id/submittimebtn"
+        android:layout_below="@id/timepicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="5dp"
+        android:textColor="#fff"
+        app:switchPadding="15dp"
+        android:paddingStart="10dp"
+        android:textAllCaps="true" />
 
 </RelativeLayout>
