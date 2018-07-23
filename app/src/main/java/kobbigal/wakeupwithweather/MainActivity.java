@@ -1,23 +1,37 @@
 package kobbigal.wakeupwithweather;
 
 import android.Manifest;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TimePicker;
-import android.widget.ToggleButton;
+
+import java.sql.Time;
+import java.time.LocalTime;
+import java.util.Date;
+
 
 public class MainActivity extends AppCompatActivity {
 
+    private final String TAG = MainActivity.class.getSimpleName();
+    private final int WEATHER_JOB_ID = 0;
+    public JobScheduler jobScheduler;
     private final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
     private boolean weatherModeEnabled;
     private boolean isAlarmOn;
+    public LocalTime selectedTime;
+    public Time selectedTimePreAPI26;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,7 +40,56 @@ public class MainActivity extends AppCompatActivity {
 
         final SwitchCompat enableAlarmToggle = findViewById(R.id.submittimebtn);
         final TimePicker timePicker = findViewById(R.id.timepicker);
+        jobScheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
 
+        checkPermissions();
+
+        if (enableAlarmToggle.isChecked()) {
+            enableAlarmToggle.setText(R.string.on_toggle);
+        }
+        else {
+            enableAlarmToggle.setText(R.string.off_toggle);
+        }
+
+        enableAlarmToggle.setOnClickListener(v -> {
+
+                if (((SwitchCompat) v).isChecked()){
+
+
+                    int hour = timePicker.getHour();
+                    int mins = timePicker.getMinute();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        selectedTime = LocalTime.of(hour, mins);
+                        Log.i(TAG, "Alarm enabled @ " + selectedTime.toString());
+                    }
+                    else {
+                        if (mins < 10){
+                            selectedTimePreAPI26 = Time.valueOf(hour+":0"+mins+":00");
+                        }
+                        else {
+                            selectedTimePreAPI26 = Time.valueOf(hour+":"+mins+":00");
+                        }
+                        Log.i(TAG, "Alarm enabled @ " + selectedTimePreAPI26.toString());
+                    }
+
+                    enableAlarmToggle.setText(R.string.on_toggle);
+
+                    isAlarmOn = true;
+
+                    scheduleWeatherJob();
+                }
+                else {
+                    Log.i(TAG, "Alarm disabled");
+                    enableAlarmToggle.setText(R.string.off_toggle);
+                    isAlarmOn = false;
+                    cancelWeatherJob();
+
+                }
+            }
+        );
+    }
+
+    public void checkPermissions(){
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -51,42 +114,38 @@ public class MainActivity extends AppCompatActivity {
             weatherModeEnabled = true;
         }
 
-        if (enableAlarmToggle.isChecked()) {
-            enableAlarmToggle.setText("On");
-        }
-        else {
-            enableAlarmToggle.setText("Off");
-        }
+    }
 
-        enableAlarmToggle.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+    public void scheduleWeatherJob(){
 
-                    if (((SwitchCompat) v).isChecked()){
-                        System.out.println("Alarm enabled");
-                        System.out.println("time picked: " + timePicker.getHour() + ":" + timePicker.getMinute());
-                        enableAlarmToggle.setText("On");
-                        isAlarmOn = true;
-                        // TODO: 7/21/18 Add logic for JobScheduler
-                    }
-                    else {
-                        System.out.println("Alarm disabled");
-                        enableAlarmToggle.setText("Off");
-                        isAlarmOn = false;
-                        // TODO: 7/21/18 Add logic to kill JobScheduler
-                    }
-                }
+        Log.i(TAG, "scheduleWeatherJob running");
 
+        ComponentName weatherServiceComponentName = new ComponentName(this, GetWeatherInfoJobService.class);;
+        JobInfo weatherJobInfo = new JobInfo.Builder(WEATHER_JOB_ID, weatherServiceComponentName)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .build();
 
+        if (jobScheduler != null) {
+            int resultCode = jobScheduler.schedule(weatherJobInfo);
+            if (resultCode == JobScheduler.RESULT_SUCCESS){
+                Log.i(TAG, "Job scheduled");
             }
-        );
+            else {
+                Log.e(TAG, "Job not scheduled");
+            }
+        }
+    }
 
+    public void cancelWeatherJob(){
+
+        Log.i(TAG, "weather job cancelled");
+        jobScheduler.cancel(WEATHER_JOB_ID);
 
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
         Snackbar mSnackbar = Snackbar.make(findViewById(R.id.rootlayout), "Weather mode is off", Snackbar.LENGTH_INDEFINITE);
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_LOCATION: {
