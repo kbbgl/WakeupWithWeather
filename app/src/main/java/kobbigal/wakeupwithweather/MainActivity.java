@@ -1,11 +1,14 @@
 package kobbigal.wakeupwithweather;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -18,8 +21,6 @@ import android.view.View;
 import android.widget.TimePicker;
 
 import java.sql.Time;
-import java.time.LocalTime;
-import java.util.Date;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -30,16 +31,17 @@ public class MainActivity extends AppCompatActivity {
     private final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
     private boolean weatherModeEnabled;
     private boolean isAlarmOn;
-    public LocalTime selectedTime;
-    public Time selectedTimePreAPI26;
+    public Time selectedTime;
+    public TimePicker timePicker;
+    public SwitchCompat enableAlarmToggle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final SwitchCompat enableAlarmToggle = findViewById(R.id.submittimebtn);
-        final TimePicker timePicker = findViewById(R.id.timepicker);
+        enableAlarmToggle = findViewById(R.id.submittimebtn);
+        timePicker = findViewById(R.id.timepicker);
         jobScheduler = (JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
 
         checkPermissions();
@@ -53,65 +55,59 @@ public class MainActivity extends AppCompatActivity {
 
         enableAlarmToggle.setOnClickListener(v -> {
 
-                if (((SwitchCompat) v).isChecked()){
-
-
-                    int hour = timePicker.getHour();
-                    int mins = timePicker.getMinute();
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        selectedTime = LocalTime.of(hour, mins);
-                        Log.i(TAG, "Alarm enabled @ " + selectedTime.toString());
-                    }
-                    else {
-                        if (mins < 10){
-                            selectedTimePreAPI26 = Time.valueOf(hour+":0"+mins+":00");
-                        }
-                        else {
-                            selectedTimePreAPI26 = Time.valueOf(hour+":"+mins+":00");
-                        }
-                        Log.i(TAG, "Alarm enabled @ " + selectedTimePreAPI26.toString());
-                    }
-
-                    enableAlarmToggle.setText(R.string.on_toggle);
-
-                    isAlarmOn = true;
-
-                    scheduleWeatherJob();
-                }
-                else {
-                    Log.i(TAG, "Alarm disabled");
-                    enableAlarmToggle.setText(R.string.off_toggle);
-                    isAlarmOn = false;
-                    cancelWeatherJob();
-
-                }
+            handleAlarm(((SwitchCompat) v).isChecked());
             }
         );
     }
 
-    public void checkPermissions(){
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+    public void handleAlarm(boolean alarmOn){
 
-            weatherModeEnabled = false;
+        if (alarmOn){
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+            int hour = timePicker.getHour();
+            int mins = timePicker.getMinute();
 
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION);
-            } else {
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION);
-
+            if (mins < 10){
+                selectedTime = Time.valueOf(hour+":0"+mins+":00");
             }
-        } else {
-            // Permission has already been granted
-            weatherModeEnabled = true;
+            else {
+                selectedTime = Time.valueOf(hour+":"+mins+":00");
+            }
+
+            Log.i(TAG, "Alarm enabled @ " + selectedTime.toString());
+
+            enableAlarmToggle.setText(R.string.on_toggle);
+
+            Log.i(TAG, "t.getTime() = " + selectedTime.getTime());
+
+            //broadcastAlarm(selectedTime);
+            broadcastTest(3);
+            scheduleWeatherJob();
+        }
+        else {
+            Log.i(TAG, "Alarm disabled");
+            enableAlarmToggle.setText(R.string.off_toggle);
+            cancelWeatherJob();
+        }
+
+    }
+
+    public void broadcastAlarm(Time t){
+
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intent, 0);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, AlarmManager.INTERVAL_DAY + t.getTime(), pendingIntent);
+        }
+    }
+
+    public void broadcastTest(int vibrateInSeconds){
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intent, 0);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + vibrateInSeconds * 1000, pendingIntent);
         }
 
     }
@@ -140,6 +136,33 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i(TAG, "weather job cancelled");
         jobScheduler.cancel(WEATHER_JOB_ID);
+
+    }
+
+    public void checkPermissions(){
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            weatherModeEnabled = false;
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            } else {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+
+            }
+        } else {
+            // Permission has already been granted
+            weatherModeEnabled = true;
+        }
 
     }
 
