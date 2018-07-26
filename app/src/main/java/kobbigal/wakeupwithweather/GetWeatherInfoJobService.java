@@ -3,6 +3,7 @@ package kobbigal.wakeupwithweather;
 import android.annotation.SuppressLint;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
+import android.support.design.widget.Snackbar;
 import android.util.Log;
 
 import com.google.android.gms.awareness.Awareness;

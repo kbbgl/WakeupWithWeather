@@ -1,6 +1,7 @@
 package kobbigal.wakeupwithweather;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.job.JobInfo;
@@ -21,6 +22,12 @@ import android.view.View;
 import android.widget.TimePicker;
 
 import java.sql.Time;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
+import static java.util.Calendar.YEAR;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -31,7 +38,6 @@ public class MainActivity extends AppCompatActivity {
     private final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
     private boolean weatherModeEnabled;
     private boolean isAlarmOn;
-    public Time selectedTime;
     public TimePicker timePicker;
     public SwitchCompat enableAlarmToggle;
 
@@ -64,21 +70,33 @@ public class MainActivity extends AppCompatActivity {
 
         if (alarmOn){
 
+            enableAlarmToggle.setText(R.string.on_toggle);
+
             int hour = timePicker.getHour();
             int mins = timePicker.getMinute();
 
-            if (mins < 10){
-                selectedTime = Time.valueOf(hour+":0"+mins+":00");
+            Calendar systemTime = Calendar.getInstance();
+//            systemTime.setTimeInMillis(System.currentTimeMillis());
+
+            Calendar pickedTime = Calendar.getInstance();
+            pickedTime.set(systemTime.get(Calendar.YEAR), systemTime.get(Calendar.MONTH), systemTime.get(Calendar.DAY_OF_MONTH), hour, mins);
+
+            Log.i(TAG, "pickedTime: " + pickedTime.getTime().toString());
+            Log.i(TAG, "systemTime: " + systemTime.getTime().toString());
+            Log.i(TAG, "systemTime.after(pickedTime):" + systemTime.after(pickedTime));
+
+            if (systemTime.before(pickedTime)){
+
+                Log.i(TAG, "Alarm should be set for today");
             }
             else {
-                selectedTime = Time.valueOf(hour+":"+mins+":00");
+                Log.i(TAG, "Alarm should be set for tomorrow");
+                pickedTime.set(Calendar.DAY_OF_MONTH, pickedTime.get(Calendar.DAY_OF_MONTH) + 1);
             }
 
-            Log.i(TAG, "Alarm enabled @ " + selectedTime.toString());
+            Log.i(TAG, "Alarm set for: " + pickedTime.getTime().toString());
 
-            enableAlarmToggle.setText(R.string.on_toggle);
-
-            Log.i(TAG, "t.getTime() = " + selectedTime.getTime());
+            // TODO: 7/26/18 send pickedTime to AlarmReceiver and initiate weather call
 
             //broadcastAlarm(selectedTime);
             broadcastTest(3);
