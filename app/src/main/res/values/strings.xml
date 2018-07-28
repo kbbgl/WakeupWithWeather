@@ -2,4 +2,7 @@
     <string name="app_name">WakeupWithWeather</string>
     <string name="on_toggle">On</string>
     <string name="off_toggle">Off</string>
+    <string name="service_description">Service that runs to get the weather for you</string>
+    <string name="channel_name">notif_channel_weather</string>
+    <string name="channel_description">Channel for notification</string>
 </resources>

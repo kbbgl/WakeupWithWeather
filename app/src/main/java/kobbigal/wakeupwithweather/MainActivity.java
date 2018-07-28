@@ -11,6 +11,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -26,6 +27,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static java.util.Calendar.YEAR;
 
@@ -33,7 +36,7 @@ import static java.util.Calendar.YEAR;
 public class MainActivity extends AppCompatActivity {
 
     private final String TAG = MainActivity.class.getSimpleName();
-    private final int WEATHER_JOB_ID = 0;
+
     public JobScheduler jobScheduler;
     private final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
     private boolean weatherModeEnabled;
@@ -75,8 +78,8 @@ public class MainActivity extends AppCompatActivity {
             int hour = timePicker.getHour();
             int mins = timePicker.getMinute();
 
+            // Set to current system time
             Calendar systemTime = Calendar.getInstance();
-//            systemTime.setTimeInMillis(System.currentTimeMillis());
 
             Calendar pickedTime = Calendar.getInstance();
             pickedTime.set(systemTime.get(Calendar.YEAR), systemTime.get(Calendar.MONTH), systemTime.get(Calendar.DAY_OF_MONTH), hour, mins);
@@ -96,11 +99,7 @@ public class MainActivity extends AppCompatActivity {
 
             Log.i(TAG, "Alarm set for: " + pickedTime.getTime().toString());
 
-            // TODO: 7/26/18 send pickedTime to AlarmReceiver and initiate weather call
-
-            //broadcastAlarm(selectedTime);
-            broadcastTest(3);
-            scheduleWeatherJob();
+            broadcastAlarm(pickedTime);
         }
         else {
             Log.i(TAG, "Alarm disabled");
@@ -110,50 +109,33 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void broadcastAlarm(Time t){
+    public void broadcastAlarm(Calendar pickedTime){
+
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                Calendar calendar = Calendar.getInstance();
+                System.out.println(calendar.getTime().toString());
+            }
+        }, 0, 1000);
 
         Intent intent = new Intent(this, AlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intent, 0);
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         if (alarmManager != null) {
-            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, AlarmManager.INTERVAL_DAY + t.getTime(), pendingIntent);
-        }
-    }
 
-    public void broadcastTest(int vibrateInSeconds){
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, intent, 0);
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + vibrateInSeconds * 1000, pendingIntent);
-        }
-
-    }
-
-    public void scheduleWeatherJob(){
-
-        Log.i(TAG, "scheduleWeatherJob running");
-
-        ComponentName weatherServiceComponentName = new ComponentName(this, GetWeatherInfoJobService.class);;
-        JobInfo weatherJobInfo = new JobInfo.Builder(WEATHER_JOB_ID, weatherServiceComponentName)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .build();
-
-        if (jobScheduler != null) {
-            int resultCode = jobScheduler.schedule(weatherJobInfo);
-            if (resultCode == JobScheduler.RESULT_SUCCESS){
-                Log.i(TAG, "Job scheduled");
-            }
-            else {
-                Log.e(TAG, "Job not scheduled");
-            }
+            // TODO: 7/27/18 Check why alarm triggered only when device wakes up
+//            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, pickedTime.getTimeInMillis(), pendingIntent);
+            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, pickedTime.getTimeInMillis(),AlarmManager.INTERVAL_DAY, pendingIntent);
+//            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, pickedTime.getTimeInMillis(), pendingIntent);
         }
     }
 
     public void cancelWeatherJob(){
 
         Log.i(TAG, "weather job cancelled");
-        jobScheduler.cancel(WEATHER_JOB_ID);
+        jobScheduler.cancel(0);
 
     }
 
